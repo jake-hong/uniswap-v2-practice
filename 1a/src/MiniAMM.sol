@@ -48,21 +48,37 @@ contract MiniAMM is IMiniAMM, IMiniAMMEvents {
     // add parameters and implement function.
     // this function will increase the 'k'
     // because it is transferring liquidity from users to this contract.
-    function _addLiquidityNotFirstTime() internal {}
+    function _addLiquidityNotFirstTime(
+        uint256 xAmountIn,
+        uint256 yAmountIn
+    ) internal {
+        // 현재 비율에 맞는 필요한 토큰 양 계산
+        uint256 yRequired = (xAmountIn * yReserve) / xReserve;
+
+        // 사용자가 제공한 Y 토큰이 충분한지 확인
+        require(yAmountIn >= yRequired, "Insufficient Y token amount");
+
+        IERC20(tokenX).transferFrom(msg.sender, address(this), xAmountIn);
+        IERC20(tokenY).transferFrom(msg.sender, address(this), yRequired);
+
+        xReserve += xAmountIn;
+        yReserve += yRequired;
+
+        k = xReserve * yReserve;
+    }
 
     // complete the function
     function addLiquidity(uint256 xAmountIn, uint256 yAmountIn) external {
         require(
             xAmountIn > 0 && yAmountIn > 0,
-            "Amount must be greater than 0"
+            "Amounts must be greater than 0"
         );
         if (k == 0) {
-            // add params
             _addLiquidityFirstTime(xAmountIn, yAmountIn);
         } else {
-            // add params
-            _addLiquidityNotFirstTime();
+            _addLiquidityNotFirstTime(xAmountIn, yAmountIn);
         }
+        emit AddLiquidity(xAmountIn, yAmountIn);
     }
 
     // complete the function
